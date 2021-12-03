@@ -7,7 +7,10 @@ fn main() -> Result<()> {
     let values = parse_input(&read_to_string(&mut stdin())?)?;
     let len = 32 - values.iter().fold(0, |i, v| i | v).leading_zeros() as usize;
 
-    let bits: Vec<_> = (0..len).map(|i| most_common_bit(&values, i)).collect();
+    let bits: Vec<_> = (0..len)
+        .rev()
+        .map(|i| most_common_bit(&values, i))
+        .collect();
     let gamma = bits_to_int(bits.iter().copied());
     let epsilon = bits_to_int(bits.iter().map(|b| b ^ 1));
     println!("{}", gamma * epsilon);
