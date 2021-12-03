@@ -1,38 +1,38 @@
 #![feature(io_read_to_string)]
 
-use anyhow::{Context, Error, Result};
+use anyhow::{Context, Result};
 use std::io::{read_to_string, stdin};
 
 fn main() -> Result<()> {
     let values = parse_input(&read_to_string(&mut stdin())?)?;
+    let len = 32 - values.iter().fold(0, |i, v| i | v).leading_zeros() as usize;
 
-    let len = values[0].len();
-    let most_common: Vec<_> = (0..len).map(|i| most_common_bit(&values, i)).collect();
-    let gamma = bits_to_int(most_common.iter().copied());
-    let epsilon = bits_to_int(most_common.iter().map(|b| b ^ 1));
+    let bits: Vec<_> = (0..len).map(|i| most_common_bit(&values, i)).collect();
+    let gamma = bits_to_int(bits.iter().copied());
+    let epsilon = bits_to_int(bits.iter().map(|b| b ^ 1));
     println!("{}", gamma * epsilon);
 
-    let oxygen_generator_rating = bits_to_int(filter(values.clone(), 0)?);
-    let co2_scrubber_rating = bits_to_int(filter(values, 1)?);
+    let oxygen_generator_rating = filter(values.clone(), len, 0)?;
+    let co2_scrubber_rating = filter(values, len, 1)?;
     println!("{}", oxygen_generator_rating * co2_scrubber_rating);
 
     Ok(())
 }
 
 /// Return the most common bit and the given index. In case of a tie, return 1.
-fn most_common_bit(values: &[Vec<u8>], index: usize) -> u8 {
-    let ones: usize = values.iter().map(|v| v[index] as usize).sum();
+fn most_common_bit(values: &[u32], index: usize) -> u8 {
+    let ones: usize = values.iter().map(|v| (v >> index) as usize & 1).sum();
     (ones >= (values.len() + 1) / 2) as u8
 }
 
-fn bits_to_int<I: IntoIterator<Item = u8>>(v: I) -> u32 {
-    v.into_iter().fold(0, |i, b| i << 1 | b as u32)
+fn bits_to_int<I: IntoIterator<Item = u8>>(bits: I) -> u32 {
+    bits.into_iter().fold(0, |i, b| i << 1 | b as u32)
 }
 
-fn filter(mut values: Vec<Vec<u8>>, invert: u8) -> Result<Vec<u8>> {
-    for i in 0..values[0].len() {
-        let bit = most_common_bit(&values, i) ^ invert;
-        values.retain(|v| v[i] == bit);
+fn filter(mut values: Vec<u32>, len: usize, invert: u8) -> Result<u32> {
+    for index in (0..len).rev() {
+        let bit = most_common_bit(&values, index) ^ invert;
+        values.retain(|v| (v >> index) as u8 & 1 == bit);
         if values.len() <= 1 {
             break;
         }
@@ -40,28 +40,9 @@ fn filter(mut values: Vec<Vec<u8>>, invert: u8) -> Result<Vec<u8>> {
     values.pop().context("filtering resulted in empty set")
 }
 
-fn parse_input(input: &str) -> Result<Vec<Vec<u8>>> {
-    let values = input.lines().map(parse_line).collect::<Result<Vec<_>>>()?;
-    if values.is_empty() {
-        return Err(Error::msg("empty input"));
-    }
-    if values[0].len() > 32 {
-        return Err(Error::msg("input numbers can't have more than 32 bits"));
-    }
-    if values.iter().any(|v| v.len() != values[0].len()) {
-        return Err(Error::msg(
-            "input numbers must all have the same bit length",
-        ));
-    }
-    Ok(values)
-}
-
-fn parse_line(line: &str) -> Result<Vec<u8>> {
-    line.chars()
-        .map(|c| match c {
-            '0' => Ok(0),
-            '1' => Ok(1),
-            _ => Err(Error::msg("invalid input line")),
-        })
-        .collect()
+fn parse_input(input: &str) -> Result<Vec<u32>> {
+    input
+        .lines()
+        .map(|line| Ok(u32::from_str_radix(line, 2)?))
+        .collect::<Result<Vec<_>>>()
 }
