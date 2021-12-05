@@ -43,12 +43,8 @@ impl Line {
         let dx = self.x1 - self.x0;
         let dy = self.y1 - self.y0;
         let len = std::cmp::max(dx.abs(), dy.abs());
-        (0..=len).map(move |t| (self.x0 + sign(dx) * t, self.y0 + sign(dy) * t))
+        (0..=len).map(move |t| (self.x0 + dx.signum() * t, self.y0 + dy.signum() * t))
     }
-}
-
-fn sign(x: i32) -> i32 {
-    (x > 0) as i32 - (x < 0) as i32
 }
 
 impl FromStr for Line {
