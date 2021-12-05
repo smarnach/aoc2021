@@ -15,20 +15,19 @@ fn main() -> Result<()> {
         .iter_mut()
         .partition_in_place(|line| line.x0 == line.x1 || line.y0 == line.y1);
     let mut counts = vec![0; SIZE * SIZE];
-    count_points(&mut counts, &lines[..straight]);
-    println!("{}", counts.iter().filter(|&&c| c > 1).count());
-    count_points(&mut counts, &lines[straight..]);
-    println!("{}", counts.iter().filter(|&&c| c > 1).count());
+    println!("{}", count_points(&mut counts, &lines[..straight]));
+    println!("{}", count_points(&mut counts, &lines[straight..]));
 
     Ok(())
 }
 
-fn count_points(counts: &mut [u32], lines: &[Line]) {
+fn count_points(counts: &mut [u32], lines: &[Line]) -> usize {
     for line in lines {
         for (x, y) in line.points() {
             counts[SIZE * y as usize + x as usize] += 1;
         }
     }
+    counts.iter().filter(|&&c| c > 1).count()
 }
 
 #[derive(Debug)]
