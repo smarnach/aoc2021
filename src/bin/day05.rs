@@ -2,10 +2,11 @@
 
 use anyhow::{Context, Error, Result};
 use std::{
-    collections::HashMap,
     io::{read_to_string, stdin},
     str::FromStr,
 };
+
+const SIZE: usize = 1000;
 
 fn main() -> Result<()> {
     let mut lines = parse_input(&read_to_string(&mut stdin())?)?;
@@ -13,19 +14,19 @@ fn main() -> Result<()> {
     let straight = lines
         .iter_mut()
         .partition_in_place(|line| line.x0 == line.x1 || line.y0 == line.y1);
-    let mut counts = HashMap::new();
+    let mut counts = vec![0; SIZE * SIZE];
     count_points(&mut counts, &lines[..straight]);
-    println!("{}", counts.values().filter(|&&c| c > 1).count());
+    println!("{}", counts.iter().filter(|&&c| c > 1).count());
     count_points(&mut counts, &lines[straight..]);
-    println!("{}", counts.values().filter(|&&c| c > 1).count());
+    println!("{}", counts.iter().filter(|&&c| c > 1).count());
 
     Ok(())
 }
 
-fn count_points(counts: &mut HashMap<(i32, i32), u32>, lines: &[Line]) {
+fn count_points(counts: &mut [u32], lines: &[Line]) {
     for line in lines {
-        for p in line.points() {
-            *counts.entry(p).or_default() += 1;
+        for (x, y) in line.points() {
+            counts[SIZE * y as usize + x as usize] += 1;
         }
     }
 }
@@ -55,11 +56,19 @@ impl FromStr for Line {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (p0, p1) = s.split_once(" -> ").context("invalid input line format")?;
+        let parse_int = |i: &str| -> Result<i32> {
+            let i = i.parse()?;
+            if 0 <= i && i < SIZE as i32 {
+                Ok(i)
+            } else {
+                Err(Error::msg("coordinate out of range 0..1000"))
+            }
+        };
         let parse_point = |p: &str| -> Result<(i32, i32)> {
             let (x, y) = p.split_once(",").context("invalid input line format")?;
-            Ok((x.parse()?, y.parse()?))
+            Ok((parse_int(x)?, parse_int(y)?))
         };
+        let (p0, p1) = s.split_once(" -> ").context("invalid input line format")?;
         let (x0, y0) = parse_point(p0)?;
         let (x1, y1) = parse_point(p1)?;
         Ok(Self { x0, y0, x1, y1 })
