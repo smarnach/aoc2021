@@ -43,25 +43,28 @@ impl SegmentCounts {
     }
 
     fn decode(&self, digits: &[&str]) -> Option<Vec<u32>> {
-        const PATTERNS: [&str; 10] = [
-            "abcefg", "cf", "acdeg", "acdfg", "bcdf", "abdfg", "abdefg", "acf", "abcdefg", "abcdfg",
-        ];
-        lazy_static! {
-            static ref KEY: HashMap<u32, u32> = {
-                let counts = SegmentCounts::new(&PATTERNS);
-                let map = PATTERNS
-                    .iter()
-                    .map(|d| counts.discriminant(d).unwrap())
-                    .zip(0..)
-                    .collect();
-                map
-            };
-        }
         digits
             .iter()
-            .map(|d| self.discriminant(d).and_then(|i| KEY.get(&i)).copied())
+            .map(|d| self.discriminant(d).and_then(discriminant_to_digit))
             .collect()
     }
+}
+
+fn discriminant_to_digit(disc: u32) -> Option<u32> {
+    const PATTERNS: [&str; 10] = [
+        "abcefg", "cf", "acdeg", "acdfg", "bcdf", "abdfg", "abdefg", "acf", "abcdefg", "abcdfg",
+    ];
+    lazy_static! {
+        static ref KEY: Vec<u32> = {
+            let counts = SegmentCounts::new(&PATTERNS);
+            let map = PATTERNS
+                .iter()
+                .map(|d| counts.discriminant(d).unwrap())
+                .collect();
+            map
+        };
+    }
+    KEY.iter().position(|&x| x == disc).map(|d| d as u32)
 }
 
 fn parse_input(input: &str) -> Result<Vec<(Vec<&str>, Vec<&str>)>> {
