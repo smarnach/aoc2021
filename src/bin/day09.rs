@@ -55,15 +55,9 @@ impl Cave {
             .sum()
     }
 
-    fn largest_basins(&self) -> u32 {
-        let mut max = [0; 3];
-        let mut min = &mut max[0];
-        for &s in &self.smoke {
-            if s > *min {
-                *min = s;
-                min = max.iter_mut().min().unwrap();
-            }
-        }
+    fn largest_basins(&mut self) -> u32 {
+        let len = self.smoke.len();
+        let (_, _, max) = self.smoke.select_nth_unstable(len - 4);
         max.iter().product()
     }
 }
