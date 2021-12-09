@@ -73,17 +73,15 @@ impl FromStr for Cave {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut width = None;
-        let mut heights = vec![];
+        let mut heights = Vec::with_capacity(s.len());
         for line in s.lines() {
             if *width.get_or_insert(line.len()) != line.len() {
                 return Err(Error::msg("all lines must have the same length"));
             }
-            for c in line.bytes() {
-                if !c.is_ascii_digit() {
-                    return Err(Error::msg("non-digit character in input line"));
-                }
-                heights.push(c - b'0');
+            if !line.bytes().all(|c| c.is_ascii_digit()) {
+                return Err(Error::msg("non-digit character in input line"));
             }
+            heights.extend(line.bytes().map(|c| c - b'0'));
         }
         let smoke = heights.iter().map(|&h| (h != 9) as _).collect();
         let width = width.context("empty input")?;
