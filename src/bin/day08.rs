@@ -1,4 +1,4 @@
-#![feature(bool_to_option, io_read_to_string)]
+#![feature(io_read_to_string)]
 
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
