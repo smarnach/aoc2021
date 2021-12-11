@@ -8,11 +8,11 @@ KERNEL = np.ones((3, 3), int)
 
 def step(a):
     a += 1
-    b = a
-    for dummy in range(20):
-        f = b > 9
-        b = a + ndimage.convolve(f.astype(int), KERNEL, mode="constant")
-    a[:] = b
+    f = g = a > 9
+    while g.any():
+        a += ndimage.convolve(g.astype(int), KERNEL, mode="constant")
+        g = (a > 9) & ~f
+        f |= g
     a[f] = 0
     return f.sum()
 

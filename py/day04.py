@@ -11,7 +11,7 @@ def main():
         for board in boards.strip().split("\n\n")
     ])
     marks = np.zeros_like(boards, dtype=bool)
-    score = lambda won: boards[won][np.logical_not(marks[won])].sum()
+    score = lambda won: boards[won][~marks[won]].sum()
     won = None
     for c in calls:
         marks[boards == c] = True
