@@ -17,33 +17,26 @@ struct Graph<'a>(HashMap<&'a str, Vec<&'a str>>);
 impl<'a> Graph<'a> {
     fn count_paths(&self, twice: bool) -> usize {
         let mut count = 0;
-        let mut path = vec!["start"];
-        let mut stack = vec![(self.get_iter("start"), twice)];
+        let mut stack = vec![("start", None, twice)];
         while !stack.is_empty() {
-            let &mut (ref mut iter, twice) = stack.last_mut().unwrap();
+            let &mut (node, ref mut iter, twice) = stack.last_mut().unwrap();
+            let iter = iter.get_or_insert_with(|| self.0.get(node).unwrap().iter());
             match iter.next().copied() {
                 Some(n) => {
                     if n == "end" {
                         count += 1;
-                    } else if is_big_cave(n) || !path.contains(&n) {
-                        path.push(n);
-                        stack.push((self.get_iter(n), twice));
+                    } else if is_big_cave(n) || stack.iter().all(|&(m, _, _)| n != m) {
+                        stack.push((n, None, twice));
                     } else if twice && n != "start" {
-                        path.push(n);
-                        stack.push((self.get_iter(n), false));
+                        stack.push((n, None, false));
                     }
                 }
                 None => {
-                    path.pop();
                     stack.pop();
                 }
             }
         }
         count
-    }
-
-    fn get_iter(&self, node: &'a str) -> std::slice::Iter<'_, &'a str> {
-        self.0.get(node).unwrap().iter()
     }
 }
 
