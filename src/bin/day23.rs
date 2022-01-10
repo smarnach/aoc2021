@@ -209,17 +209,17 @@ impl<'a, const N: usize> Iterator for Moves<'a, N> {
                     let room_x = geom::room_x(room_i);
                     let corr_x = geom::corridor_x(corr_i);
                     let dest_x = geom::room_x(a as _);
+                    let detour =
+                        (corr_x - room_x).abs() + (dest_x - corr_x).abs() - (dest_x - room_x).abs();
                     if self.burrow.cells[corr_i].is_none()
-                        && (dest_x < corr_x) != (corr_x < room_x)
+                        && detour > 0
                         && self.burrow.traversable(room_x, corr_x)
                     {
                         let mut new_burrow = self.burrow.clone();
                         new_burrow.rooms[room_i].pop();
                         new_burrow.cells[corr_i] = Some(a);
                         while new_burrow.corridor_to_room() || new_burrow.room_to_room() {}
-                        let dist = (corr_x - room_x).abs() + (dest_x - corr_x).abs()
-                            - (dest_x - room_x).abs();
-                        return Some((a.cost(dist), new_burrow));
+                        return Some((a.cost(detour), new_burrow));
                     }
                 }
             }
@@ -282,12 +282,7 @@ enum Amphipod {
 
 impl Amphipod {
     fn cost(&self, dist: i32) -> i32 {
-        dist * match *self {
-            Amphipod::A => 1,
-            Amphipod::B => 10,
-            Amphipod::C => 100,
-            Amphipod::D => 1000,
-        }
+        dist * 10i32.pow(*self as _)
     }
 }
 
