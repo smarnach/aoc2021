@@ -5,7 +5,6 @@ use arrayvec::ArrayVec;
 use regex::Regex;
 use rustc_hash::FxHashSet as HashSet;
 use std::{
-    cmp::{Ordering, Reverse},
     collections::BinaryHeap,
     io::{read_to_string, stdin},
     rc::Rc,
@@ -14,8 +13,8 @@ use std::{
 fn main() -> Result<()> {
     let input_a = parse_input(&read_to_string(&mut stdin())?)?;
     let input_b = unfold(input_a);
-    println!("{}", solve(Burrow::new(input_a))?.0);
-    println!("{}", solve(Burrow::new(input_b))?.0);
+    println!("{}", solve(Burrow::new(input_a))?.cost);
+    println!("{}", solve(Burrow::new(input_b))?.cost);
     Ok(())
 }
 
@@ -25,19 +24,19 @@ fn unfold(input: [[Amphipod; 2]; 4]) -> [[Amphipod; 4]; 4] {
     input.zip(insert).map(|(r, s)| [r[0], s[0], s[1], r[1]])
 }
 
-fn solve<const N: usize>(burrow: Burrow<N>) -> Result<(i32, Rc<Node<N>>)> {
+fn solve<const N: usize>(burrow: Burrow<N>) -> Result<Rc<Node<N>>> {
     let mut queue = BinaryHeap::new();
-    queue.push(Reverse((burrow.min_cost(), Node::new(burrow))));
+    queue.push(Node::new(burrow));
     let mut seen = HashSet::default();
-    while let Some(Reverse((cost, node))) = queue.pop() {
-        if (0..4).all(|i| node.burrow.dest_y(i) == 0) {
-            return Ok((cost, node));
+    while let Some(node) = queue.pop() {
+        if node.burrow.solved() {
+            return Ok(node);
         }
         if !seen.insert(node.burrow.clone()) {
             continue;
         }
         for (additional_cost, new_burrow) in node.burrow.moves() {
-            queue.push(Reverse((cost + additional_cost, node.add(new_burrow))));
+            queue.push(node.add(additional_cost, new_burrow));
         }
     }
     Err(Error::msg("no solution found"))
@@ -45,6 +44,7 @@ fn solve<const N: usize>(burrow: Burrow<N>) -> Result<(i32, Rc<Node<N>>)> {
 
 #[derive(Eq)]
 struct Node<const N: usize> {
+    cost: i32,
     burrow: Burrow<N>,
     #[allow(dead_code)]
     previous: Option<Rc<Node<N>>>,
@@ -52,31 +52,40 @@ struct Node<const N: usize> {
 
 impl<const N: usize> Node<N> {
     fn new(burrow: Burrow<N>) -> Rc<Self> {
-        let previous = None;
-        Rc::new(Self { burrow, previous })
+        Rc::new(Self {
+            cost: burrow.min_cost(),
+            burrow,
+            previous: None,
+        })
     }
 
-    fn add(self: &Rc<Self>, burrow: Burrow<N>) -> Rc<Self> {
-        let previous = Some(Rc::clone(self));
-        Rc::new(Self { burrow, previous })
+    fn add(self: &Rc<Self>, additional_cost: i32, burrow: Burrow<N>) -> Rc<Self> {
+        Rc::new(Self {
+            cost: self.cost + additional_cost,
+            burrow,
+            previous: Some(Rc::clone(self)),
+        })
     }
 }
 
 impl<const N: usize> PartialEq for Node<N> {
-    fn eq(&self, _: &Self) -> bool {
-        true
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.cost == other.cost
     }
 }
 
 impl<const N: usize> PartialOrd for Node<N> {
-    fn partial_cmp(&self, _: &Self) -> Option<std::cmp::Ordering> {
-        Some(Ordering::Equal)
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
 impl<const N: usize> Ord for Node<N> {
-    fn cmp(&self, _: &Self) -> Ordering {
-        Ordering::Equal
+    #[inline]
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other.cost.cmp(&self.cost)
     }
 }
 
@@ -104,6 +113,11 @@ impl<const N: usize> Burrow<N> {
             .iter()
             .take_while(|&&a| a as usize == i)
             .count()
+    }
+
+    #[inline]
+    fn solved(&self) -> bool {
+        (0..4).all(|i| self.dest_y(i) == 0)
     }
 
     fn min_cost(&self) -> i32 {
